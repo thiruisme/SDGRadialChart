@@ -2,8 +2,7 @@
 
 This web-based tool allows you to create and customize an interactive circular graph inspired by the UN's Sustainable Development Goals (SDGs). Each of the 17 SDG segments has a height determined by a user-defined value, visualized extending from a central baseline.
 
-**Live Demo:** (You would host this on GitHub Pages or similar and link it here)
-_e.g., `https://thiruisme.github.io/sdgradialchart/`_
+**Live Demo:** https://thiruisme.github.io/sdgradialchart/
 
 ## Features
 
