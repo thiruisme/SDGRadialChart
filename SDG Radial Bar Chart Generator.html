@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive SDG Height Graph</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-start;
+            padding: 20px;
+            background-color: #f4f4f4;
+            flex-wrap: wrap;
+        }
+        #controls-container { /* Renamed for clarity */
+            width: 400px; /* Wider for more controls */
+            padding: 15px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            max-height: 90vh;
+            overflow-y: auto;
+            margin-bottom: 20px;
+        }
+        .control-section {
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        .control-section:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+        .control-section h4 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            color: #555;
+        }
+        .range-setting, .csv-upload-setting {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .range-setting label, .csv-upload-setting label {
+            margin-right: 10px;
+            font-size: 0.9em;
+            min-width: 70px;
+        }
+        .range-setting input[type="number"],
+        .csv-upload-setting input[type="file"] {
+            flex-grow: 1;
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            font-size: 0.9em;
+        }
+        #applyRangeButton {
+            padding: 6px 12px;
+            font-size: 0.9em;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 5px;
+        }
+        #applyRangeButton:hover {
+            background-color: #218838;
+        }
+
+        .sdg-control-group { /* Renamed from control-group */
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px; /* Spacing between elements */
+        }
+        .sdg-control-group label {
+            flex-basis: 180px; /* Adjust for label width */
+            font-size: 0.85em;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            flex-shrink: 0; /* Prevent label from shrinking */
+        }
+        .sdg-control-group input[type="range"] {
+            flex-grow: 1;
+        }
+        .sdg-control-group input[type="number"] {
+            width: 55px; /* Fixed width for number input */
+            padding: 4px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            text-align: right;
+            font-size: 0.85em;
+        }
+        #csvStatus {
+            font-size: 0.8em;
+            color: #666;
+            margin-top: 5px;
+            min-height: 1.2em;
+        }
+
+        #graph-container {
+            text-align: center;
+        }
+        canvas {
+            border: 1px solid #ccc;
+            background-color: #fff;
+            border-radius: 8px;
+        }
+        #downloadSVGButton {
+            display: block;
+            margin: 15px auto 5px;
+            padding: 8px 15px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+        #downloadSVGButton:hover {
+            background-color: #0056b3;
+        }
+        h2, h3 {
+            color: #333;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="controls-container">
+        <h3>Chart Controls</h3>
+
+        <div class="control-section">
+            <h4>Value Range</h4>
+            <div class="range-setting">
+                <label for="customMinRange">Min:</label>
+                <input type="number" id="customMinRange" value="0">
+            </div>
+            <div class="range-setting">
+                <label for="customMaxRange">Max:</label>
+                <input type="number" id="customMaxRange" value="16">
+            </div>
+            <button id="applyRangeButton">Apply Range</button>
+        </div>
+
+        <div class="control-section">
+            <h4>Upload Data (CSV)</h4>
+            <div class="csv-upload-setting">
+                <label for="csvFileUpload">File:</label>
+                <input type="file" id="csvFileUpload" accept=".csv">
+            </div>
+            <div id="csvStatus">Expected: 17 lines of values, or "SDG Index (1-17),Value".</div>
+        </div>
+
+        <div class="control-section">
+            <h4>SDG Values</h4>
+            <div id="sdg-controls-list">
+                <!-- Individual SDG input fields will be generated here -->
+            </div>
+        </div>
+    </div>
+
+    <div id="graph-container">
+        <h2>SDG Radial Chart Generator</h2>
+        <canvas id="sdgCanvas" width="500" height="500"></canvas>
+        <button id="downloadSVGButton">Download as SVG</button>
+    </div>
+
+    <script>
+        const SDGs = [
+            // ... (SDG data remains the same)
+            { name: "1. No Poverty", color: "#E5243B" }, { name: "2. Zero Hunger", color: "#DDA63A" },
+            { name: "3. Good Health and Well-being", color: "#4C9F38" }, { name: "4. Quality Education", color: "#C5192D" },
+            { name: "5. Gender Equality", color: "#FF3A21" }, { name: "6. Clean Water and Sanitation", color: "#26BDE2" },
+            { name: "7. Affordable and Clean Energy", color: "#FCC30B" }, { name: "8. Decent Work and Economic Growth", color: "#A21942" },
+            { name: "9. Industry, Innovation and Infrastructure", color: "#FD6925" }, { name: "10. Reduced Inequality", color: "#DD1367" },
+            { name: "11. Sustainable Cities and Communities", color: "#FD9D24" }, { name: "12. Responsible Consumption and Production", color: "#BF8B2E" },
+            { name: "13. Climate Action", color: "#3F7E44" }, { name: "14. Life Below Water", color: "#0A97D9" },
+            { name: "15. Life on Land", color: "#56C02B" }, { name: "16. Peace and Justice Strong Institutions", color: "#00689D" },
+            { name: "17. Partnerships for the Goals", color: "#19486A" }
+        ];
+
+        const NUM_SDGS = SDGs.length;
+
+        const canvas = document.getElementById('sdgCanvas');
+        const ctx = canvas.getContext('2d');
+        const sdgControlsListContainer = document.getElementById('sdg-controls-list');
+        const downloadButton = document.getElementById('downloadSVGButton');
+        const customMinInput = document.getElementById('customMinRange');
+        const customMaxInput = document.getElementById('customMaxRange');
+        const applyRangeButton = document.getElementById('applyRangeButton');
+        const csvFileUploadInput = document.getElementById('csvFileUpload');
+        const csvStatusDiv = document.getElementById('csvStatus');
+
+
+        const CANVAS_WIDTH = canvas.width;
+        const CANVAS_HEIGHT = canvas.height;
+        const centerX = CANVAS_WIDTH / 2;
+        const centerY = CANVAS_HEIGHT / 2;
+        const baseRadius = 70;
+        const maxExtension = 100;
+        const segmentStrokeWidth = 1;
+        const TEXT_GUIDE_RADIUS = baseRadius + maxExtension + 35;
+        const GUIDE_LINE_COLOR = '#cccccc';
+        const OUTER_LABEL_FONT_SIZE = 9;
+
+        let currentCustomMin = 0;
+        let currentCustomMax = 16;
+        let currentValues = new Array(NUM_SDGS).fill( (currentCustomMin + currentCustomMax) / 2 );
+
+        function updateSingleSDGControl(index, value) {
+            const safeValue = Math.max(currentCustomMin, Math.min(currentCustomMax, Number(value)));
+            currentValues[index] = safeValue;
+
+            const slider = document.getElementById(`sdg-slider-${index}`);
+            const numberInput = document.getElementById(`sdg-number-${index}`);
+
+            if (slider) slider.value = safeValue;
+            if (numberInput) numberInput.value = safeValue;
+            drawGraph();
+        }
+
+
+        function createSDGControls() {
+            sdgControlsListContainer.innerHTML = ''; // Clear existing controls
+            SDGs.forEach((sdg, index) => {
+                const group = document.createElement('div');
+                group.classList.add('sdg-control-group');
+
+                const label = document.createElement('label');
+                label.setAttribute('for', `sdg-slider-${index}`);
+                label.textContent = sdg.name;
+                label.title = sdg.name;
+
+                const slider = document.createElement('input');
+                slider.type = 'range';
+                slider.id = `sdg-slider-${index}`;
+                slider.min = currentCustomMin;
+                slider.max = currentCustomMax;
+                slider.value = currentValues[index];
+                slider.step = (currentCustomMax - currentCustomMin) > 20 ? 1 : ((currentCustomMax - currentCustomMin) / 100).toFixed(2) ; // Dynamic step
+                slider.dataset.index = index;
+
+                const numberInput = document.createElement('input');
+                numberInput.type = 'number';
+                numberInput.id = `sdg-number-${index}`;
+                numberInput.min = currentCustomMin;
+                numberInput.max = currentCustomMax;
+                numberInput.value = currentValues[index];
+                numberInput.step = slider.step;
+                numberInput.dataset.index = index;
+
+                slider.addEventListener('input', (event) => {
+                    const idx = parseInt(event.target.dataset.index);
+                    updateSingleSDGControl(idx, event.target.value);
+                });
+
+                numberInput.addEventListener('input', (event) => {
+                    const idx = parseInt(event.target.dataset.index);
+                    updateSingleSDGControl(idx, event.target.value);
+                });
+                 numberInput.addEventListener('change', (event) => { // Ensure value is clamped on blur
+                    const idx = parseInt(event.target.dataset.index);
+                    updateSingleSDGControl(idx, event.target.value);
+                });
+
+
+                group.appendChild(label);
+                group.appendChild(slider);
+                group.appendChild(numberInput);
+                sdgControlsListContainer.appendChild(group);
+            });
+        }
+
+        function applyCustomRange() {
+            const newMin = parseFloat(customMinInput.value);
+            const newMax = parseFloat(customMaxInput.value);
+
+            if (isNaN(newMin) || isNaN(newMax) || newMin >= newMax) {
+                alert("Invalid range: Min must be less than Max, and both must be numbers.");
+                customMinInput.value = currentCustomMin; // Reset to old values
+                customMaxInput.value = currentCustomMax;
+                return;
+            }
+            currentCustomMin = newMin;
+            currentCustomMax = newMax;
+
+            // Re-clamp existing values and update controls
+            currentValues = currentValues.map(val => Math.max(currentCustomMin, Math.min(currentCustomMax, val)));
+            createSDGControls(); // Rebuild controls with new min/max and steps
+            drawGraph();
+        }
+
+        function handleCSVUpload(event) {
+            const file = event.target.files[0];
+            if (!file) {
+                csvStatusDiv.textContent = "No file selected.";
+                return;
+            }
+            if (file.type !== "text/csv" && !file.name.endsWith(".csv")) {
+                csvStatusDiv.textContent = "Error: Please select a CSV file.";
+                alert("Error: Please select a CSV file.");
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const text = e.target.result;
+                const lines = text.trim().split(/\r\n|\n/);
+                let newValuesLoaded = 0;
+                let parseError = false;
+
+                if (lines.length === NUM_SDGS) { // Assume one value per line, in order
+                    for (let i = 0; i < NUM_SDGS; i++) {
+                        if (lines[i] === undefined) { parseError = true; break; }
+                        const value = parseFloat(lines[i].trim());
+                        if (isNaN(value)) {
+                            parseError = true;
+                            break;
+                        }
+                        currentValues[i] = Math.max(currentCustomMin, Math.min(currentCustomMax, value));
+                        newValuesLoaded++;
+                    }
+                } else { // Try parsing "SDG Index,Value"
+                    const tempValues = [...currentValues]; // Work on a copy
+                    const foundIndices = new Set();
+
+                    for (const line of lines) {
+                        const parts = line.split(',');
+                        if (parts.length === 2) {
+                            const sdgIndex = parseInt(parts[0].trim()) - 1; // Assuming 1-based index in CSV
+                            const value = parseFloat(parts[1].trim());
+
+                            if (!isNaN(sdgIndex) && sdgIndex >= 0 && sdgIndex < NUM_SDGS && !isNaN(value)) {
+                                tempValues[sdgIndex] = Math.max(currentCustomMin, Math.min(currentCustomMax, value));
+                                foundIndices.add(sdgIndex);
+                            } else {
+                                // Allow partial success, but log for complex CSVs
+                                console.warn(`Skipping invalid CSV line: ${line}`);
+                            }
+                        }
+                    }
+                    if (foundIndices.size > 0) {
+                         currentValues = tempValues;
+                         newValuesLoaded = foundIndices.size;
+                    } else {
+                        parseError = true; // If no valid lines were found in this format
+                    }
+                }
+
+                if (parseError || newValuesLoaded === 0) {
+                    csvStatusDiv.textContent = "CSV parsing error or no valid data found.";
+                    alert("CSV parsing error. Please check file format:\n- 17 lines, each with one value.\n- OR lines with 'SDG_Index (1-17),Value'.");
+                } else {
+                    csvStatusDiv.textContent = `Successfully loaded ${newValuesLoaded} values from CSV.`;
+                    // Update all controls with new values
+                    currentValues.forEach((val, idx) => updateSingleSDGControl(idx, val));
+                    drawGraph(); // This is called by updateSingleSDGControl
+                }
+                csvFileUploadInput.value = ''; // Reset file input
+            };
+            reader.onerror = () => {
+                csvStatusDiv.textContent = "Error reading file.";
+                alert("Error reading file.");
+                csvFileUploadInput.value = '';
+            };
+            reader.readAsText(file);
+        }
+
+
+        function drawSegment(index, value) {
+            const sdg = SDGs[index];
+            const anglePerSegment = (2 * Math.PI) / NUM_SDGS;
+            const startAngle = index * anglePerSegment - Math.PI / 2;
+            const endAngle = startAngle + anglePerSegment;
+
+            const rangeSpan = currentCustomMax - currentCustomMin;
+            const normalizedValue = rangeSpan === 0 ? 0 : (value - currentCustomMin) / rangeSpan;
+            const segmentOuterRadius = baseRadius + (normalizedValue * maxExtension);
+
+            // Draw segment body
+            ctx.beginPath();
+            ctx.fillStyle = sdg.color;
+            ctx.moveTo(centerX + baseRadius * Math.cos(startAngle), centerY + baseRadius * Math.sin(startAngle));
+            ctx.arc(centerX, centerY, segmentOuterRadius, startAngle, endAngle, false);
+            ctx.lineTo(centerX + baseRadius * Math.cos(endAngle), centerY + baseRadius * Math.sin(endAngle));
+            ctx.arc(centerX, centerY, baseRadius, endAngle, startAngle, true);
+            ctx.closePath();
+            ctx.fill();
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = segmentStrokeWidth;
+            ctx.stroke();
+
+            const midAngle = startAngle + anglePerSegment / 2;
+
+            // Guide Line
+            ctx.beginPath();
+            ctx.strokeStyle = GUIDE_LINE_COLOR;
+            ctx.lineWidth = 0.5;
+            const lineStartX = centerX + segmentOuterRadius * Math.cos(midAngle);
+            const lineStartY = centerY + segmentOuterRadius * Math.sin(midAngle);
+            const lineEndX = centerX + (TEXT_GUIDE_RADIUS - 5) * Math.cos(midAngle);
+            const lineEndY = centerY + (TEXT_GUIDE_RADIUS - 5) * Math.sin(midAngle);
+            ctx.moveTo(lineStartX, lineStartY);
+            ctx.lineTo(lineEndX, lineEndY);
+            ctx.stroke();
+
+            // "SDG #" Label (Outer)
+            ctx.save();
+            const outerLabelX = centerX + TEXT_GUIDE_RADIUS * Math.cos(midAngle);
+            const outerLabelY = centerY + TEXT_GUIDE_RADIUS * Math.sin(midAngle);
+            ctx.translate(outerLabelX, outerLabelY);
+            let rotation = midAngle + Math.PI / 2;
+            if (midAngle > Math.PI / 2 && midAngle < 3 * Math.PI / 2) rotation += Math.PI;
+            ctx.rotate(rotation);
+            ctx.fillStyle = 'black';
+            ctx.font = `bold ${OUTER_LABEL_FONT_SIZE}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(`SDG ${index + 1}`, 0, 0);
+            ctx.restore();
+
+            // Value Label (Inner)
+            const displayValue = Number.isInteger(value) ? value : value.toFixed(2); // Display with decimals if not integer
+            if (value > currentCustomMin || (value === currentCustomMin && currentCustomMin !==0) && segmentOuterRadius > baseRadius + 2) { // Show if not at true min or if segment has height
+                const valueLabelRadius = baseRadius + (segmentOuterRadius - baseRadius) / 2;
+                 if (valueLabelRadius < baseRadius + 5 && (segmentOuterRadius - baseRadius) < 10) {
+                    // If too small, don't draw inner label to avoid clutter
+                } else {
+                    const valueLabelX = centerX + valueLabelRadius * Math.cos(midAngle);
+                    const valueLabelY = centerY + valueLabelRadius * Math.sin(midAngle);
+                    ctx.font = 'bold 10px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.strokeStyle = 'rgba(0,0,0,0.7)';
+                    ctx.lineWidth = 2;
+                    ctx.strokeText(displayValue, valueLabelX, valueLabelY);
+                    ctx.fillStyle = 'white';
+                    ctx.fillText(displayValue, valueLabelX, valueLabelY);
+                }
+            }
+        }
+
+        function drawBackgroundGuideCircle() {
+            ctx.beginPath();
+            ctx.strokeStyle = GUIDE_LINE_COLOR;
+            ctx.lineWidth = 0.5;
+            ctx.arc(centerX, centerY, TEXT_GUIDE_RADIUS, 0, 2 * Math.PI);
+            ctx.stroke();
+        }
+
+        function drawGraph() {
+            ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+            drawBackgroundGuideCircle();
+            currentValues.forEach((value, index) => {
+                drawSegment(index, value);
+            });
+        }
+
+        function generateSVGString() {
+            let svgContent = '';
+            const anglePerSegment = (2 * Math.PI) / NUM_SDGS;
+
+            svgContent += `<circle cx="0" cy="0" r="${TEXT_GUIDE_RADIUS.toFixed(2)}" fill="none" stroke="${GUIDE_LINE_COLOR}" stroke-width="0.5" />\n`;
+            let textPathDefs = '<defs>\n';
+             for (let i = 0; i < NUM_SDGS; i++) {
+                const midAngleRad = (i * anglePerSegment - Math.PI / 2) + anglePerSegment / 2;
+                const textArcSpan = anglePerSegment * 0.9;
+                const arcStartAngle = midAngleRad - textArcSpan / 2;
+                const arcEndAngle = midAngleRad + textArcSpan / 2;
+                let startX = TEXT_GUIDE_RADIUS * Math.cos(arcStartAngle);
+                let startY = TEXT_GUIDE_RADIUS * Math.sin(arcStartAngle);
+                let endX = TEXT_GUIDE_RADIUS * Math.cos(arcEndAngle);
+                let endY = TEXT_GUIDE_RADIUS * Math.sin(arcEndAngle);
+                let sweepFlag = 1;
+                if (midAngleRad > Math.PI / 2 && midAngleRad < 3 * Math.PI / 2) {
+                    [startX, endX] = [endX, startX];
+                    [startY, endY] = [endY, startY];
+                    sweepFlag = 0;
+                }
+                textPathDefs += `  <path id="sdgPath${i}" d="M ${startX.toFixed(2)} ${startY.toFixed(2)} A ${TEXT_GUIDE_RADIUS.toFixed(2)} ${TEXT_GUIDE_RADIUS.toFixed(2)} 0 0 ${sweepFlag} ${endX.toFixed(2)} ${endY.toFixed(2)}" />\n`;
+            }
+            textPathDefs += '</defs>\n';
+            svgContent += textPathDefs;
+
+            currentValues.forEach((value, index) => {
+                const sdg = SDGs[index];
+                const startAngle = index * anglePerSegment - Math.PI / 2;
+                const endAngle = startAngle + anglePerSegment;
+                const midAngleRad = startAngle + anglePerSegment / 2;
+
+                const rangeSpan = currentCustomMax - currentCustomMin;
+                const normalizedValue = rangeSpan === 0 ? 0 : (value - currentCustomMin) / rangeSpan;
+                const segmentOuterRadiusSVG = baseRadius + (normalizedValue * maxExtension);
+
+                const p1x = baseRadius * Math.cos(startAngle);
+                const p1y = baseRadius * Math.sin(startAngle);
+                const p2x = segmentOuterRadiusSVG * Math.cos(startAngle);
+                const p2y = segmentOuterRadiusSVG * Math.sin(startAngle);
+                const p3x = segmentOuterRadiusSVG * Math.cos(endAngle);
+                const p3y = segmentOuterRadiusSVG * Math.sin(endAngle);
+                const p4x = baseRadius * Math.cos(endAngle);
+                const p4y = baseRadius * Math.sin(endAngle);
+                const d = `M ${p1x.toFixed(2)} ${p1y.toFixed(2)} L ${p2x.toFixed(2)} ${p2y.toFixed(2)} A ${segmentOuterRadiusSVG.toFixed(2)} ${segmentOuterRadiusSVG.toFixed(2)} 0 0 1 ${p3x.toFixed(2)} ${p3y.toFixed(2)} L ${p4x.toFixed(2)} ${p4y.toFixed(2)} A ${baseRadius.toFixed(2)} ${baseRadius.toFixed(2)} 0 0 0 ${p1x.toFixed(2)} ${p1y.toFixed(2)} Z`;
+                svgContent += `<path d="${d}" fill="${sdg.color}" stroke="#fff" stroke-width="${segmentStrokeWidth}" />\n`;
+
+                const lineStartXSVG = segmentOuterRadiusSVG * Math.cos(midAngleRad);
+                const lineStartYSVG = segmentOuterRadiusSVG * Math.sin(midAngleRad);
+                const lineEndXSVG = (TEXT_GUIDE_RADIUS - 5) * Math.cos(midAngleRad);
+                const lineEndYSVG = (TEXT_GUIDE_RADIUS - 5) * Math.sin(midAngleRad);
+                svgContent += `<line x1="${lineStartXSVG.toFixed(2)}" y1="${lineStartYSVG.toFixed(2)}" x2="${lineEndXSVG.toFixed(2)}" y2="${lineEndYSVG.toFixed(2)}" stroke="${GUIDE_LINE_COLOR}" stroke-width="0.5" />\n`;
+
+                svgContent += `<text font-family="Arial, sans-serif" font-size="${OUTER_LABEL_FONT_SIZE}px" font-weight="bold" fill="black" text-anchor="middle" dominant-baseline="middle">
+                                 <textPath xlink:href="#sdgPath${index}" startOffset="50%">SDG ${index + 1}</textPath>
+                               </text>\n`;
+                
+                const displayValue = Number.isInteger(value) ? value : value.toFixed(2);
+                if (value > currentCustomMin || (value === currentCustomMin && currentCustomMin !==0) && segmentOuterRadiusSVG > baseRadius + 2) {
+                     const valueLabelRadiusSVG = baseRadius + (segmentOuterRadiusSVG - baseRadius) / 2;
+                     if (valueLabelRadiusSVG < baseRadius + 5 && (segmentOuterRadiusSVG - baseRadius) < 10) {
+                        // Skip if too small
+                    } else {
+                        const valueLabelXSVG = valueLabelRadiusSVG * Math.cos(midAngleRad);
+                        const valueLabelYSVG = valueLabelRadiusSVG * Math.sin(midAngleRad);
+                        svgContent += `<text x="${valueLabelXSVG.toFixed(2)}" y="${valueLabelYSVG.toFixed(2)}" font-family="Arial, sans-serif" font-size="10px" font-weight="bold" fill="white" stroke="rgba(0,0,0,0.7)" stroke-width="0.5px" paint-order="stroke" text-anchor="middle" dominant-baseline="middle">${displayValue}</text>\n`;
+                    }
+                }
+            });
+            return `
+<svg width="${CANVAS_WIDTH}" height="${CANVAS_HEIGHT}" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="background-color: #fff;">
+  <g transform="translate(${centerX}, ${centerY})">
+    ${svgContent}
+  </g>
+</svg>`.trim();
+        }
+
+        function downloadSVG() {
+            const svgString = generateSVGString();
+            const blob = new Blob([svgString], { type: 'image/svg+xml' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'sdg_height_chart.svg';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // Initialize
+        applyRangeButton.addEventListener('click', applyCustomRange);
+        csvFileUploadInput.addEventListener('change', handleCSVUpload);
+        downloadButton.addEventListener('click', downloadSVG);
+
+        createSDGControls(); // Initial creation of SDG controls
+        drawGraph(); // Initial draw
+
+    </script>
+</body>
+</html>
