@@ -244,7 +244,9 @@
                 slider.min = currentCustomMin;
                 slider.max = currentCustomMax;
                 slider.value = currentValues[index];
-                slider.step = (currentCustomMax - currentCustomMin) > 20 ? 1 : ((currentCustomMax - currentCustomMin) / 100).toFixed(2) ; // Dynamic step
+                const rangeSpan = currentCustomMax - currentCustomMin;
+                const stepValue = rangeSpan > 20 ? 1 : rangeSpan / 100; // Avoid 0 step for very small ranges
+                slider.step = stepValue;
                 slider.dataset.index = index;
 
                 const numberInput = document.createElement('input');
@@ -253,7 +255,7 @@
                 numberInput.min = currentCustomMin;
                 numberInput.max = currentCustomMax;
                 numberInput.value = currentValues[index];
-                numberInput.step = slider.step;
+                numberInput.step = stepValue;
                 numberInput.dataset.index = index;
 
                 slider.addEventListener('input', (event) => {
