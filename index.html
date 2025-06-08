@@ -111,7 +111,7 @@
             background-color: #fff;
             border-radius: 8px;
         }
-        #downloadSVGButton {
+        .download-button {
             display: block;
             margin: 15px auto 5px;
             padding: 8px 15px;
@@ -122,7 +122,7 @@
             cursor: pointer;
             font-size: 0.9em;
         }
-        #downloadSVGButton:hover {
+        .download-button:hover {
             background-color: #0056b3;
         }
         h2, h3 {
@@ -174,7 +174,9 @@
     <div id="graph-container">
         <h2>SDG Radial Chart Generator</h2>
         <canvas id="sdgCanvas" width="500" height="500"></canvas>
-        <button id="downloadSVGButton">Download as SVG</button>
+        <button id="downloadSVGButton" class="download-button">Download as SVG</button>
+        <button id="downloadPNGButton" class="download-button">Download as PNG</button>
+        <button id="downloadJPGButton" class="download-button">Download as JPG</button>
     </div>
 
     <script>
@@ -197,6 +199,8 @@
         const ctx = canvas.getContext('2d');
         const sdgControlsListContainer = document.getElementById('sdg-controls-list');
         const downloadButton = document.getElementById('downloadSVGButton');
+        const downloadPNGButton = document.getElementById('downloadPNGButton');
+        const downloadJPGButton = document.getElementById('downloadJPGButton');
         const customMinInput = document.getElementById('customMinRange');
         const customMaxInput = document.getElementById('customMaxRange');
         const applyRangeButton = document.getElementById('applyRangeButton');
@@ -487,7 +491,7 @@
             });
         }
 
-        function generateSVGString() {
+        function generateSVGString(whiteBackground = true) {
             let svgContent = '';
             const anglePerSegment = (2 * Math.PI) / NUM_SDGS;
 
@@ -577,8 +581,9 @@
                     }
                 }
             });
+            const bgStyle = whiteBackground ? ' style="background-color: #fff;"' : '';
             return `
-<svg width="${CANVAS_WIDTH}" height="${CANVAS_HEIGHT}" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="background-color: #fff;">
+<svg width="${CANVAS_WIDTH}" height="${CANVAS_HEIGHT}" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"${bgStyle}>
   <g transform="translate(${centerX}, ${centerY})">
     ${svgContent}
   </g>
@@ -586,7 +591,7 @@
         }
 
         function downloadSVG() {
-            const svgString = generateSVGString();
+            const svgString = generateSVGString(true);
             const blob = new Blob([svgString], { type: 'image/svg+xml' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -598,10 +603,43 @@
             URL.revokeObjectURL(url);
         }
 
+        function downloadCanvasImage(type) {
+            const mime = type === 'jpg' ? 'image/jpeg' : 'image/png';
+            const EXPORT_SIZE = 2000;
+
+            const exportCanvas = document.createElement('canvas');
+            exportCanvas.width = EXPORT_SIZE;
+            exportCanvas.height = EXPORT_SIZE;
+            const exportCtx = exportCanvas.getContext('2d');
+
+            const svgString = generateSVGString(type === 'jpg');
+            const img = new Image();
+            const url = URL.createObjectURL(new Blob([svgString], { type: 'image/svg+xml' }));
+
+            img.onload = () => {
+                if (type === 'jpg') {
+                    exportCtx.fillStyle = '#ffffff';
+                    exportCtx.fillRect(0, 0, EXPORT_SIZE, EXPORT_SIZE);
+                }
+                exportCtx.drawImage(img, 0, 0, EXPORT_SIZE, EXPORT_SIZE);
+                URL.revokeObjectURL(url);
+                const a = document.createElement('a');
+                a.href = exportCanvas.toDataURL(mime);
+                a.download = `sdg_height_chart.${type}`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            };
+
+            img.src = url;
+        }
+
         // Initialize
         applyRangeButton.addEventListener('click', applyCustomRange);
         csvFileUploadInput.addEventListener('change', handleCSVUpload);
         downloadButton.addEventListener('click', downloadSVG);
+        downloadPNGButton.addEventListener('click', () => downloadCanvasImage('png'));
+        downloadJPGButton.addEventListener('click', () => downloadCanvasImage('jpg'));
         valueStrokeCheckbox.addEventListener('change', drawGraph);
 
         createSDGControls(); // Initial creation of SDG controls

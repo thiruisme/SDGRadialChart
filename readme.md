@@ -15,7 +15,7 @@ This web-based tool allows you to create and customize an interactive circular g
 *   **Dynamic Labels:**
     *   "SDG #" labels are positioned along a guide circle, following its curvature for a clean look.
     *   The current value for each segment is displayed within the segment itself (if space permits).
-*   **SVG Export:** Download the generated chart as a Scalable Vector Graphic (SVG) file for high-quality use in reports, presentations, or further editing.
+*   **Export Options:** Download the chart as a Scalable Vector Graphic (SVG) or as a PNG/JPG image for easy use in reports or presentations. PNG and JPG downloads are generated from the SVG at 2000×2000 resolution (PNG keeps transparency while JPG has a white background) for crisp quality.
 *   **Responsive Design:** Controls and graph layout adjust for different screen sizes.
 
 ## How to Use
@@ -47,9 +47,10 @@ This web-based tool allows you to create and customize an interactive circular g
         *   In the "Upload Data (CSV)" section, click "Choose File" and select your CSV.
         *   The graph and controls will update with the loaded data. A status message will indicate success or any parsing issues.
 4.  **View the Graph:** The circular graph on the right will update in real-time as you change values.
-5.  **Download as SVG:**
-    *   Click the "Download as SVG" button below the graph.
-    *   An SVG file named `sdg_height_chart.svg` will be downloaded to your computer.
+5.  **Download the Chart:**
+    *   Use the buttons below the graph to save it as **SVG**, **PNG**, or **JPG**.
+    *   PNG and JPG exports are generated from the SVG at 2000×2000 pixels. PNG files retain transparency, while JPG files have a white background.
+    *   The downloaded file will be named `sdg_height_chart` with the corresponding extension.
 
 ## File Structure
 
