@@ -604,25 +604,33 @@
 
         function downloadCanvasImage(type) {
             const mime = type === 'jpg' ? 'image/jpeg' : 'image/png';
+            const EXPORT_SIZE = 2000;
+
             const exportCanvas = document.createElement('canvas');
-            const EXPORT_SIZE = 2000; // target resolution
             exportCanvas.width = EXPORT_SIZE;
             exportCanvas.height = EXPORT_SIZE;
             const exportCtx = exportCanvas.getContext('2d');
 
-            if (type === 'jpg') {
-                exportCtx.fillStyle = '#ffffff';
-                exportCtx.fillRect(0, 0, EXPORT_SIZE, EXPORT_SIZE);
-            }
+            const svgString = generateSVGString();
+            const img = new Image();
+            const url = URL.createObjectURL(new Blob([svgString], { type: 'image/svg+xml' }));
 
-            exportCtx.drawImage(canvas, 0, 0, EXPORT_SIZE, EXPORT_SIZE);
+            img.onload = () => {
+                if (type === 'jpg') {
+                    exportCtx.fillStyle = '#ffffff';
+                    exportCtx.fillRect(0, 0, EXPORT_SIZE, EXPORT_SIZE);
+                }
+                exportCtx.drawImage(img, 0, 0, EXPORT_SIZE, EXPORT_SIZE);
+                URL.revokeObjectURL(url);
+                const a = document.createElement('a');
+                a.href = exportCanvas.toDataURL(mime);
+                a.download = `sdg_height_chart.${type}`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            };
 
-            const a = document.createElement('a');
-            a.href = exportCanvas.toDataURL(mime);
-            a.download = `sdg_height_chart.${type}`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
+            img.src = url;
         }
 
         // Initialize
