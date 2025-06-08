@@ -111,7 +111,7 @@
             background-color: #fff;
             border-radius: 8px;
         }
-        #downloadSVGButton {
+        .download-button {
             display: block;
             margin: 15px auto 5px;
             padding: 8px 15px;
@@ -122,7 +122,7 @@
             cursor: pointer;
             font-size: 0.9em;
         }
-        #downloadSVGButton:hover {
+        .download-button:hover {
             background-color: #0056b3;
         }
         h2, h3 {
@@ -174,7 +174,9 @@
     <div id="graph-container">
         <h2>SDG Radial Chart Generator</h2>
         <canvas id="sdgCanvas" width="500" height="500"></canvas>
-        <button id="downloadSVGButton">Download as SVG</button>
+        <button id="downloadSVGButton" class="download-button">Download as SVG</button>
+        <button id="downloadPNGButton" class="download-button">Download as PNG</button>
+        <button id="downloadJPGButton" class="download-button">Download as JPG</button>
     </div>
 
     <script>
@@ -197,6 +199,8 @@
         const ctx = canvas.getContext('2d');
         const sdgControlsListContainer = document.getElementById('sdg-controls-list');
         const downloadButton = document.getElementById('downloadSVGButton');
+        const downloadPNGButton = document.getElementById('downloadPNGButton');
+        const downloadJPGButton = document.getElementById('downloadJPGButton');
         const customMinInput = document.getElementById('customMinRange');
         const customMaxInput = document.getElementById('customMaxRange');
         const applyRangeButton = document.getElementById('applyRangeButton');
@@ -598,10 +602,22 @@
             URL.revokeObjectURL(url);
         }
 
+        function downloadCanvasImage(type) {
+            const mime = type === 'jpg' ? 'image/jpeg' : 'image/png';
+            const a = document.createElement('a');
+            a.href = canvas.toDataURL(mime);
+            a.download = `sdg_height_chart.${type}`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
         // Initialize
         applyRangeButton.addEventListener('click', applyCustomRange);
         csvFileUploadInput.addEventListener('change', handleCSVUpload);
         downloadButton.addEventListener('click', downloadSVG);
+        downloadPNGButton.addEventListener('click', () => downloadCanvasImage('png'));
+        downloadJPGButton.addEventListener('click', () => downloadCanvasImage('jpg'));
         valueStrokeCheckbox.addEventListener('change', drawGraph);
 
         createSDGControls(); // Initial creation of SDG controls
