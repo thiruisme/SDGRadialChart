@@ -450,10 +450,24 @@
         }
 
         function drawBackgroundGuideCircle() {
-            ctx.beginPath();
+            const anglePerSegment = (2 * Math.PI) / NUM_SDGS;
+            const textArcSpan = anglePerSegment * 0.9;
+            const gap = anglePerSegment - textArcSpan;
+
             ctx.strokeStyle = GUIDE_LINE_COLOR;
             ctx.lineWidth = 0.5;
-            ctx.arc(centerX, centerY, TEXT_GUIDE_RADIUS, 0, 2 * Math.PI);
+
+            ctx.beginPath();
+            for (let i = 0; i < NUM_SDGS; i++) {
+                const startAngle = i * anglePerSegment - Math.PI / 2;
+                const preGapEnd = startAngle + gap / 2;
+                const postGapStart = startAngle + anglePerSegment - gap / 2;
+
+                ctx.arc(centerX, centerY, TEXT_GUIDE_RADIUS, startAngle, preGapEnd);
+                ctx.moveTo(centerX + TEXT_GUIDE_RADIUS * Math.cos(postGapStart),
+                           centerY + TEXT_GUIDE_RADIUS * Math.sin(postGapStart));
+                ctx.arc(centerX, centerY, TEXT_GUIDE_RADIUS, postGapStart, startAngle + anglePerSegment);
+            }
             ctx.stroke();
         }
 
@@ -469,7 +483,27 @@
             let svgContent = '';
             const anglePerSegment = (2 * Math.PI) / NUM_SDGS;
 
-            svgContent += `<circle cx="0" cy="0" r="${TEXT_GUIDE_RADIUS.toFixed(2)}" fill="none" stroke="${GUIDE_LINE_COLOR}" stroke-width="0.5" />\n`;
+            let guidePath = '';
+            const textArcSpan = anglePerSegment * 0.9;
+            const gap = anglePerSegment - textArcSpan;
+            for (let i = 0; i < NUM_SDGS; i++) {
+                const startAngle = i * anglePerSegment - Math.PI / 2;
+                const preGapEnd = startAngle + gap / 2;
+                const postGapStart = startAngle + anglePerSegment - gap / 2;
+
+                const sx1 = TEXT_GUIDE_RADIUS * Math.cos(startAngle);
+                const sy1 = TEXT_GUIDE_RADIUS * Math.sin(startAngle);
+                const ex1 = TEXT_GUIDE_RADIUS * Math.cos(preGapEnd);
+                const ey1 = TEXT_GUIDE_RADIUS * Math.sin(preGapEnd);
+                guidePath += `M ${sx1.toFixed(2)} ${sy1.toFixed(2)} A ${TEXT_GUIDE_RADIUS.toFixed(2)} ${TEXT_GUIDE_RADIUS.toFixed(2)} 0 0 1 ${ex1.toFixed(2)} ${ey1.toFixed(2)} `;
+
+                const sx2 = TEXT_GUIDE_RADIUS * Math.cos(postGapStart);
+                const sy2 = TEXT_GUIDE_RADIUS * Math.sin(postGapStart);
+                const ex2 = TEXT_GUIDE_RADIUS * Math.cos(startAngle + anglePerSegment);
+                const ey2 = TEXT_GUIDE_RADIUS * Math.sin(startAngle + anglePerSegment);
+                guidePath += `M ${sx2.toFixed(2)} ${sy2.toFixed(2)} A ${TEXT_GUIDE_RADIUS.toFixed(2)} ${TEXT_GUIDE_RADIUS.toFixed(2)} 0 0 1 ${ex2.toFixed(2)} ${ey2.toFixed(2)} `;
+            }
+            svgContent += `<path d="${guidePath.trim()}" fill="none" stroke="${GUIDE_LINE_COLOR}" stroke-width="0.5" />\n`;
             let textPathDefs = '<defs>\n';
              for (let i = 0; i < NUM_SDGS; i++) {
                 const midAngleRad = (i * anglePerSegment - Math.PI / 2) + anglePerSegment / 2;
