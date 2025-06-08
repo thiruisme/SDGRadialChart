@@ -159,6 +159,11 @@
         </div>
 
         <div class="control-section">
+            <h4>Display Options</h4>
+            <label><input type="checkbox" id="valueStrokeCheckbox" checked> Outline value numbers</label>
+        </div>
+
+        <div class="control-section">
             <h4>SDG Values</h4>
             <div id="sdg-controls-list">
                 <!-- Individual SDG input fields will be generated here -->
@@ -197,6 +202,7 @@
         const applyRangeButton = document.getElementById('applyRangeButton');
         const csvFileUploadInput = document.getElementById('csvFileUpload');
         const csvStatusDiv = document.getElementById('csvStatus');
+        const valueStrokeCheckbox = document.getElementById('valueStrokeCheckbox');
 
 
         const CANVAS_WIDTH = canvas.width;
@@ -440,9 +446,11 @@
                     ctx.font = 'bold 10px Arial';
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
-                    ctx.strokeStyle = 'rgba(0,0,0,0.7)';
-                    ctx.lineWidth = 2;
-                    ctx.strokeText(displayValue, valueLabelX, valueLabelY);
+                    if (valueStrokeCheckbox.checked) {
+                        ctx.strokeStyle = 'rgba(0,0,0,0.7)';
+                        ctx.lineWidth = 2;
+                        ctx.strokeText(displayValue, valueLabelX, valueLabelY);
+                    }
                     ctx.fillStyle = 'white';
                     ctx.fillText(displayValue, valueLabelX, valueLabelY);
                 }
@@ -530,7 +538,8 @@
                     } else {
                         const valueLabelXSVG = valueLabelRadiusSVG * Math.cos(midAngleRad);
                         const valueLabelYSVG = valueLabelRadiusSVG * Math.sin(midAngleRad);
-                        svgContent += `<text x="${valueLabelXSVG.toFixed(2)}" y="${valueLabelYSVG.toFixed(2)}" font-family="Arial, sans-serif" font-size="10px" font-weight="bold" fill="white" stroke="rgba(0,0,0,0.7)" stroke-width="0.5px" paint-order="stroke" text-anchor="middle" dominant-baseline="middle">${displayValue}</text>\n`;
+                        const strokeAttrs = valueStrokeCheckbox.checked ? ' stroke="rgba(0,0,0,0.7)" stroke-width="0.5px" paint-order="stroke"' : '';
+                        svgContent += `<text x="${valueLabelXSVG.toFixed(2)}" y="${valueLabelYSVG.toFixed(2)}" font-family="Arial, sans-serif" font-size="10px" font-weight="bold" fill="white"${strokeAttrs} text-anchor="middle" dominant-baseline="middle">${displayValue}</text>\n`;
                     }
                 }
             });
@@ -559,6 +568,7 @@
         applyRangeButton.addEventListener('click', applyCustomRange);
         csvFileUploadInput.addEventListener('change', handleCSVUpload);
         downloadButton.addEventListener('click', downloadSVG);
+        valueStrokeCheckbox.addEventListener('change', drawGraph);
 
         createSDGControls(); // Initial creation of SDG controls
         drawGraph(); // Initial draw
