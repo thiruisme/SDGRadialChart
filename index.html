@@ -220,6 +220,13 @@
         const GUIDE_LINE_COLOR = '#cccccc';
         const OUTER_LABEL_FONT_SIZE = 9;
 
+        // Indices where outer label text should be flipped (0-based)
+        const FLIP_TEXT_INDICES = [5, 6, 7, 8, 13, 14, 15, 16];
+
+        function shouldFlipText(index) {
+            return FLIP_TEXT_INDICES.includes(index);
+        }
+
         let currentCustomMin = 0;
         let currentCustomMax = 16;
         let currentValues = new Array(NUM_SDGS).fill( (currentCustomMin + currentCustomMax) / 2 );
@@ -430,6 +437,7 @@
             ctx.translate(outerLabelX, outerLabelY);
             let rotation = midAngle + Math.PI / 2;
             if (midAngle > Math.PI / 2 && midAngle < 3 * Math.PI / 2) rotation += Math.PI;
+            if (shouldFlipText(index)) rotation += Math.PI;
             ctx.rotate(rotation);
             ctx.fillStyle = 'black';
             ctx.font = `bold ${OUTER_LABEL_FONT_SIZE}px Arial`;
@@ -531,6 +539,11 @@
                     [startX, endX] = [endX, startX];
                     [startY, endY] = [endY, startY];
                     sweepFlag = 0;
+                }
+                if (shouldFlipText(i)) {
+                    [startX, endX] = [endX, startX];
+                    [startY, endY] = [endY, startY];
+                    sweepFlag = sweepFlag ? 0 : 1;
                 }
                 textPathDefs += `  <path id="sdgPath${i}" d="M ${startX.toFixed(2)} ${startY.toFixed(2)} A ${TEXT_GUIDE_RADIUS.toFixed(2)} ${TEXT_GUIDE_RADIUS.toFixed(2)} 0 0 ${sweepFlag} ${endX.toFixed(2)} ${endY.toFixed(2)}" />\n`;
             }
